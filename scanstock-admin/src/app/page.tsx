@@ -286,38 +286,38 @@ export default function LandingPage() {
             {[
               {
                 icon: ScanBarcode,
-                title: 'Escaneo Rápido',
-                description: 'Escanea códigos de barras y QR instantáneamente con la cámara de tu dispositivo.',
+                title: 'Escaneo Instantáneo',
+                description: 'Escanea códigos de barras en tiempo real. Busca productos al instante y agrégalos a tus ventas.',
                 color: 'primary',
               },
               {
                 icon: Package,
-                title: 'Control de Inventario',
-                description: 'Gestiona stock, categorías, precios y proveedores desde un solo lugar.',
+                title: 'Gestión de Inventario',
+                description: 'Controla stock, precios, alertas de stock bajo e imágenes de productos. Todo en un solo lugar.',
                 color: 'green-500',
               },
               {
                 icon: ShoppingCart,
                 title: 'Punto de Venta',
-                description: 'Procesa ventas rápidamente con un POS intuitivo y fácil de usar.',
+                description: 'Crea ventas escaneando productos. Carrito inteligente con control de cantidades y totales automáticos.',
                 color: 'amber-500',
               },
               {
                 icon: BarChart3,
-                title: 'Reportes y Analytics',
-                description: 'Visualiza métricas de ventas, productos más vendidos y tendencias.',
+                title: 'Dashboard y Reportes',
+                description: 'Estadísticas de ventas diarias, semanales y mensuales. Exporta reportes en PDF y Excel.',
                 color: 'violet-500',
               },
               {
                 icon: Users,
-                title: 'Multi-usuario',
-                description: 'Crea cuentas para tu equipo con diferentes niveles de acceso.',
+                title: 'Roles y Permisos',
+                description: 'Crea usuarios Admin o Empleado. Cada rol ve solo lo que necesita para trabajar.',
                 color: 'blue-500',
               },
               {
                 icon: Shield,
-                title: 'Seguridad Total',
-                description: 'Tus datos están protegidos con encriptación de nivel empresarial.',
+                title: 'Datos en la Nube',
+                description: 'Tu información sincronizada y segura. Accede desde cualquier dispositivo Android.',
                 color: 'rose-500',
               },
             ].map((feature, index) => (
@@ -373,46 +373,47 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
             {[
               {
-                name: 'Básico',
+                name: 'Inicial',
                 price: 'Gratis',
-                description: 'Para emprendedores que inician',
+                description: 'Prueba todas las funciones',
                 features: [
-                  'Hasta 100 productos',
+                  'Hasta 50 productos',
                   '1 usuario',
-                  'Reportes básicos',
-                  'Soporte por email',
+                  'Escaneo de códigos',
+                  'Punto de venta básico',
+                  'Historial de ventas',
                 ],
                 cta: 'Comenzar Gratis',
                 popular: false,
               },
               {
-                name: 'Pro',
-                price: '$29',
+                name: 'Negocio',
+                price: '$149 MXN',
                 period: '/mes',
-                description: 'Para negocios en crecimiento',
+                description: 'Todo lo que necesitas',
                 features: [
                   'Productos ilimitados',
-                  '5 usuarios',
-                  'Analytics avanzados',
-                  'Soporte prioritario',
-                  'Exportar a Excel',
-                  'API Access',
+                  'Hasta 3 usuarios',
+                  'Dashboard completo',
+                  'Reportes PDF y Excel',
+                  'Alertas de stock bajo',
+                  'Soporte por email',
                 ],
-                cta: 'Comenzar Prueba',
+                cta: 'Comenzar Ahora',
                 popular: true,
               },
               {
-                name: 'Enterprise',
-                price: '$99',
+                name: 'Premium',
+                price: '$299 MXN',
                 period: '/mes',
-                description: 'Para grandes operaciones',
+                description: 'Para equipos grandes',
                 features: [
-                  'Todo en Pro',
+                  'Todo en Negocio',
                   'Usuarios ilimitados',
-                  'Multi-sucursal',
-                  'Soporte 24/7',
-                  'Integraciones custom',
-                  'SLA garantizado',
+                  'Estadísticas avanzadas',
+                  'Soporte prioritario',
+                  'Gráficos de ventas',
+                  'Backup automático',
                 ],
                 cta: 'Contactar Ventas',
                 popular: false,
@@ -615,7 +616,7 @@ export default function LandingPage() {
 
           <div className="pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-sm text-muted-foreground">
-              © 2024 ScanStock. Todos los derechos reservados.
+              © 2025 ScanStock. Todos los derechos reservados.
             </p>
             <p className="text-xs text-muted-foreground font-mono">
               v2.0.0
