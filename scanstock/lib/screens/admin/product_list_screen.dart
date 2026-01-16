@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../../config/app_theme.dart';
 import '../../models/producto.dart';
@@ -19,6 +21,7 @@ class _ProductListScreenState extends State<ProductListScreen>
   final StorageService _storageService = StorageService();
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  Timer? _debounceTimer;
 
   List<Producto> _products = [];
   bool _isLoading = true;
@@ -44,6 +47,7 @@ class _ProductListScreenState extends State<ProductListScreen>
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
     _animationController.dispose();
     _searchController.dispose();
     _scrollController.dispose();
@@ -58,10 +62,15 @@ class _ProductListScreenState extends State<ProductListScreen>
   }
 
   void _onSearchChanged() {
-    // Resetear y buscar con debounce
-    _currentPage = 0;
-    _hasMoreData = true;
-    _loadProducts();
+    // Cancelar timer anterior si existe
+    _debounceTimer?.cancel();
+
+    // Esperar 500ms antes de buscar (debounce real)
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+      _currentPage = 0;
+      _hasMoreData = true;
+      _loadProducts();
+    });
   }
 
   Future<void> _loadProducts() async {

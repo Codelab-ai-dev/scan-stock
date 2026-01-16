@@ -77,14 +77,20 @@ export default function UsersPage() {
     setCreating(true)
     setCreateError(null)
 
-    // Crear usuario de auth
+    // Metadata que incluye business_id y role para el trigger
+    const userMetadata = {
+      full_name: newName,
+      role: newRole,
+      business_id: businessId,
+      is_super_admin: false,
+    }
+
+    // Crear usuario de auth (el trigger creará el perfil automáticamente)
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email: newEmail,
       password: newPassword,
       email_confirm: true,
-      user_metadata: {
-        full_name: newName,
-      },
+      user_metadata: userMetadata,
     })
 
     if (authError) {
@@ -93,9 +99,7 @@ export default function UsersPage() {
         email: newEmail,
         password: newPassword,
         options: {
-          data: {
-            full_name: newName,
-          },
+          data: userMetadata,
         },
       })
 
@@ -105,27 +109,35 @@ export default function UsersPage() {
         return
       }
 
-      // Crear o actualizar perfil con business_id y role
+      // Si el trigger no funcionó, actualizar el perfil manualmente
       if (signUpData.user) {
-        await supabase.from('profiles').upsert({
-          id: signUpData.user.id,
-          email: newEmail,
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({
+            business_id: businessId,
+            role: newRole,
+            full_name: newName,
+          })
+          .eq('id', signUpData.user.id)
+
+        if (updateError) {
+          console.error('Error updating profile:', updateError)
+        }
+      }
+    } else if (authData.user) {
+      // Si el trigger no funcionó, actualizar el perfil manualmente
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
           business_id: businessId,
           role: newRole,
           full_name: newName,
-          is_super_admin: false,
         })
+        .eq('id', authData.user.id)
+
+      if (updateError) {
+        console.error('Error updating profile:', updateError)
       }
-    } else if (authData.user) {
-      // Crear o actualizar perfil con business_id y role
-      await supabase.from('profiles').upsert({
-        id: authData.user.id,
-        email: newEmail,
-        business_id: businessId,
-        role: newRole,
-        full_name: newName,
-        is_super_admin: false,
-      })
     }
 
     // Recargar usuarios

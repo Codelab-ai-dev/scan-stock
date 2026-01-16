@@ -7,7 +7,7 @@ import '../../services/sale_service.dart';
 import '../../widgets/continuous_scanner_widget.dart';
 import '../../widgets/sale_item_card.dart';
 
-enum SaleScreenState { scanning, reviewing, processing, success, error }
+enum SaleScreenState { scanning, reviewing, payment, processing, success, error }
 
 class NewSaleScreen extends StatefulWidget {
   const NewSaleScreen({super.key});
@@ -25,6 +25,11 @@ class _NewSaleScreenState extends State<NewSaleScreen>
   final List<VentaItem> _items = [];
   String? _errorMessage;
   String? _lastScannedProduct;
+
+  // Payment state
+  final TextEditingController _montoRecibidoController = TextEditingController();
+  double _montoRecibido = 0;
+  double get _cambio => _montoRecibido - _total;
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -45,6 +50,7 @@ class _NewSaleScreenState extends State<NewSaleScreen>
   @override
   void dispose() {
     _animationController.dispose();
+    _montoRecibidoController.dispose();
     super.dispose();
   }
 
@@ -361,7 +367,35 @@ class _NewSaleScreenState extends State<NewSaleScreen>
     });
   }
 
-  void _finalizeSale() async {
+  void _switchToPayment() {
+    setState(() {
+      _state = SaleScreenState.payment;
+      _montoRecibido = 0;
+      _montoRecibidoController.clear();
+    });
+    _animationController.forward(from: 0);
+  }
+
+  void _switchToReviewFromPayment() {
+    setState(() {
+      _state = SaleScreenState.reviewing;
+    });
+  }
+
+  void _processPayment() async {
+    if (_montoRecibido < _total) {
+      HapticFeedback.heavyImpact();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('El monto recibido es menor al total'),
+          backgroundColor: AppTheme.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _state = SaleScreenState.processing;
     });
@@ -376,7 +410,7 @@ class _NewSaleScreenState extends State<NewSaleScreen>
       HapticFeedback.heavyImpact();
 
       // Esperar y volver
-      await Future.delayed(const Duration(seconds: 2));
+      await Future.delayed(const Duration(seconds: 3));
       if (mounted) {
         Navigator.pop(context, true);
       }
@@ -492,6 +526,8 @@ class _NewSaleScreenState extends State<NewSaleScreen>
         return _buildScanningState();
       case SaleScreenState.reviewing:
         return _buildReviewingState();
+      case SaleScreenState.payment:
+        return _buildPaymentState();
       case SaleScreenState.processing:
         return _buildProcessingState();
       case SaleScreenState.success:
@@ -662,15 +698,280 @@ class _NewSaleScreenState extends State<NewSaleScreen>
           const SizedBox(width: 12),
           Expanded(
             child: ElevatedButton.icon(
-              onPressed: _finalizeSale,
-              icon: const Icon(Icons.check),
-              label: const Text('Finalizar'),
+              onPressed: _switchToPayment,
+              icon: const Icon(Icons.payments_outlined),
+              label: const Text('Cobrar'),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentState() {
+    return Container(
+      decoration: const BoxDecoration(gradient: AppTheme.darkGradient),
+      child: SafeArea(
+        child: Column(
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.surface,
+                border: Border(bottom: BorderSide(color: AppTheme.border)),
+              ),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: _switchToReviewFromPayment,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceLight,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppTheme.border),
+                      ),
+                      child: const Icon(
+                        Icons.arrow_back_ios_new,
+                        size: 18,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                  ),
+                  const Expanded(
+                    child: Text(
+                      'Cobrar',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 42),
+                ],
+              ),
+            ),
+
+            Expanded(
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Total a cobrar
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: AppTheme.surface,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppTheme.border),
+                        ),
+                        child: Column(
+                          children: [
+                            const Text(
+                              'TOTAL A COBRAR',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.textMuted,
+                                letterSpacing: 1,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '\$${_total.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                fontSize: 42,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.primary,
+                              ),
+                            ),
+                            Text(
+                              '$_totalItems productos',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: AppTheme.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Monto recibido
+                      const Text(
+                        'Efectivo recibido',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: AppTheme.surface,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppTheme.border),
+                        ),
+                        child: TextField(
+                          controller: _montoRecibidoController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          style: const TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textPrimary,
+                          ),
+                          textAlign: TextAlign.center,
+                          decoration: InputDecoration(
+                            hintText: '\$0.00',
+                            hintStyle: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.textMuted.withValues(alpha: 0.5),
+                            ),
+                            prefixIcon: const Padding(
+                              padding: EdgeInsets.only(left: 16),
+                              child: Text(
+                                '\$',
+                                style: TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.textMuted,
+                                ),
+                              ),
+                            ),
+                            prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                          ),
+                          onChanged: (value) {
+                            setState(() {
+                              _montoRecibido = double.tryParse(value) ?? 0;
+                            });
+                          },
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Botones de monto rápido
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _buildQuickAmountButton(_total),
+                          _buildQuickAmountButton((_total / 10).ceil() * 10.0),
+                          _buildQuickAmountButton((_total / 50).ceil() * 50.0),
+                          _buildQuickAmountButton((_total / 100).ceil() * 100.0),
+                        ],
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Cambio
+                      if (_montoRecibido > 0)
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: _cambio >= 0
+                                ? AppTheme.success.withValues(alpha: 0.1)
+                                : AppTheme.error.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: _cambio >= 0
+                                  ? AppTheme.success.withValues(alpha: 0.3)
+                                  : AppTheme.error.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              Text(
+                                _cambio >= 0 ? 'CAMBIO' : 'FALTA',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: _cambio >= 0 ? AppTheme.success : AppTheme.error,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                '\$${_cambio.abs().toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  fontSize: 36,
+                                  fontWeight: FontWeight.bold,
+                                  color: _cambio >= 0 ? AppTheme.success : AppTheme.error,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // Botón de confirmar
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.surface,
+                border: Border(top: BorderSide(color: AppTheme.border)),
+              ),
+              child: ElevatedButton.icon(
+                onPressed: _montoRecibido >= _total ? _processPayment : null,
+                icon: const Icon(Icons.check_circle_outline),
+                label: const Text('Confirmar Venta'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  minimumSize: const Size(double.infinity, 54),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickAmountButton(double amount) {
+    final isExact = amount == _total;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _montoRecibido = amount;
+          _montoRecibidoController.text = amount.toStringAsFixed(2);
+        });
+        HapticFeedback.lightImpact();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: isExact ? AppTheme.primary.withValues(alpha: 0.15) : AppTheme.surfaceLight,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isExact ? AppTheme.primary.withValues(alpha: 0.3) : AppTheme.border,
+          ),
+        ),
+        child: Text(
+          isExact ? 'Exacto' : '\$${amount.toStringAsFixed(0)}',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: isExact ? AppTheme.primary : AppTheme.textPrimary,
+          ),
+        ),
       ),
     );
   }
@@ -735,6 +1036,39 @@ class _NewSaleScreenState extends State<NewSaleScreen>
                 color: AppTheme.success,
               ),
             ),
+            if (_cambio > 0) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppTheme.warning.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.warning.withValues(alpha: 0.3)),
+                ),
+                child: Column(
+                  children: [
+                    const Text(
+                      'CAMBIO',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.warning,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '\$${_cambio.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.warning,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),
