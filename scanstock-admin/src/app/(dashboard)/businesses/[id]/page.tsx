@@ -55,7 +55,6 @@ export default function BusinessDetailPage() {
         .single()
 
       if (fetchError || !data) {
-        setError('Negocio no encontrado')
         setLoading(false)
         return
       }
