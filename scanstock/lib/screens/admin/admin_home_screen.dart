@@ -10,6 +10,7 @@ import 'dashboard_screen.dart';
 import '../user/scanner_screen.dart';
 import '../sales/new_sale_screen.dart';
 import '../sales/sales_history_screen.dart';
+import '../profile/profile_screen.dart';
 
 class AdminHomeScreen extends StatefulWidget {
   const AdminHomeScreen({super.key});
@@ -114,6 +115,27 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
         ],
       ),
       actions: [
+        Container(
+          margin: const EdgeInsets.only(right: 8),
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceLight,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppTheme.border),
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.person_outline_rounded, size: 20),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ProfileScreen(),
+                ),
+              );
+            },
+            tooltip: 'Mi perfil',
+            color: AppTheme.textSecondary,
+          ),
+        ),
         Container(
           margin: const EdgeInsets.only(right: 12),
           decoration: BoxDecoration(

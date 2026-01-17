@@ -6,13 +6,13 @@ import type { AppSettings } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useToast } from '@/components/ui/toast'
+import { useConfirm } from '@/components/ui/confirm-modal'
 import {
   Smartphone,
   Upload,
   Download,
   Loader2,
-  Check,
-  AlertCircle,
   FileArchive,
   Calendar,
   HardDrive,
@@ -21,12 +21,12 @@ import {
 } from 'lucide-react'
 
 export default function AppSettingsPage() {
+  const toast = useToast()
+  const { confirm } = useConfirm()
   const [appSettings, setAppSettings] = useState<AppSettings | null>(null)
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
   const [version, setVersion] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -43,7 +43,7 @@ export default function AppSettingsPage() {
 
     if (error && error.code !== 'PGRST116') {
       console.error('Error fetching app settings:', error)
-      setError('Error al cargar la configuración')
+      toast.error('Error al cargar la configuración')
     } else {
       setAppSettings(data)
       if (data?.apk_version) {
@@ -53,95 +53,71 @@ export default function AppSettingsPage() {
     setLoading(false)
   }
 
+  // Validate version format
+  function isValidVersion(v: string): boolean {
+    const versionRegex = /^\d+\.\d+(\.\d+)?$/
+    return versionRegex.test(v)
+  }
+
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
 
     if (!file.name.endsWith('.apk')) {
-      setError('Solo se permiten archivos APK')
+      toast.error('Solo se permiten archivos APK')
       return
     }
 
     if (!version.trim()) {
-      setError('Por favor ingresa la versión del APK')
+      toast.error('Por favor ingresa la versión del APK')
+      return
+    }
+
+    if (!isValidVersion(version.trim())) {
+      toast.error('Formato de versión inválido. Use formato: X.Y o X.Y.Z (ej: 2.0.1)')
+      return
+    }
+
+    // Check file size (200MB max)
+    const maxSize = 200 * 1024 * 1024
+    if (file.size > maxSize) {
+      toast.error('El archivo excede el tamaño máximo de 200MB')
       return
     }
 
     setUploading(true)
     setUploadProgress(0)
-    setError(null)
-    setSuccess(null)
 
     try {
-      // Get upload credentials from server
-      const configResponse = await fetch('/api/upload-apk')
-      const config = await configResponse.json()
+      // Create FormData and upload to backend (API key stays on server)
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('version', version.trim())
 
-      if (!configResponse.ok) {
-        throw new Error(config.error || 'Error al obtener configuración')
-      }
+      // Simulate progress since we can't track server-side upload
+      const progressInterval = setInterval(() => {
+        setUploadProgress((prev) => Math.min(prev + 10, 90))
+      }, 500)
 
-      const { storageUrl, cdnUrl, apiKey } = config
-      const filename = `scanstock-v${version}.apk`
-
-      // Upload directly to Bunny Storage using XMLHttpRequest for progress
-      await new Promise<void>((resolve, reject) => {
-        const xhr = new XMLHttpRequest()
-
-        xhr.upload.addEventListener('progress', (event) => {
-          if (event.lengthComputable) {
-            const percent = Math.round((event.loaded / event.total) * 100)
-            setUploadProgress(percent)
-          }
-        })
-
-        xhr.addEventListener('load', () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            resolve()
-          } else {
-            reject(new Error(`Error al subir: ${xhr.statusText}`))
-          }
-        })
-
-        xhr.addEventListener('error', () => {
-          reject(new Error('Error de red al subir el archivo'))
-        })
-
-        xhr.open('PUT', `${storageUrl}/${filename}`)
-        xhr.setRequestHeader('AccessKey', apiKey)
-        xhr.setRequestHeader('Content-Type', 'application/vnd.android.package-archive')
-        xhr.send(file)
-      })
-
-      // Calculate file size
-      const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1) + ' MB'
-      const apkUrl = `${cdnUrl}/${filename}`
-
-      // Save to database
-      const saveResponse = await fetch('/api/upload-apk', {
+      const response = await fetch('/api/upload-apk', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          version,
-          filename,
-          size: fileSizeMB,
-          url: apkUrl,
-        }),
+        body: formData,
       })
 
-      const saveResult = await saveResponse.json()
+      clearInterval(progressInterval)
+      setUploadProgress(100)
 
-      if (!saveResponse.ok) {
-        throw new Error(saveResult.error || 'Error al guardar configuración')
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Error al subir el archivo')
       }
 
-      setSuccess('APK subido correctamente')
+      toast.success('APK subido correctamente')
       await fetchAppSettings()
     } catch (err) {
       console.error('Upload error:', err)
-      setError(err instanceof Error ? err.message : 'Error al subir el archivo')
+      toast.error(err instanceof Error ? err.message : 'Error al subir el archivo')
     } finally {
       setUploading(false)
       setUploadProgress(0)
@@ -152,10 +128,15 @@ export default function AppSettingsPage() {
   }
 
   async function handleDelete() {
-    if (!confirm('¿Estás seguro de que quieres eliminar el APK actual?')) return
+    const confirmed = await confirm({
+      title: 'Eliminar APK',
+      message: '¿Estás seguro de que quieres eliminar el APK actual? Los usuarios no podrán descargar la app hasta que subas uno nuevo.',
+      confirmText: 'Eliminar',
+      cancelText: 'Cancelar',
+      variant: 'danger',
+    })
 
-    setError(null)
-    setSuccess(null)
+    if (!confirmed) return
 
     try {
       const response = await fetch('/api/upload-apk', {
@@ -168,12 +149,12 @@ export default function AppSettingsPage() {
         throw new Error(result.error || 'Error al eliminar el archivo')
       }
 
-      setSuccess('APK eliminado correctamente')
+      toast.success('APK eliminado correctamente')
       setVersion('')
       await fetchAppSettings()
     } catch (err) {
       console.error('Delete error:', err)
-      setError(err instanceof Error ? err.message : 'Error al eliminar el archivo')
+      toast.error(err instanceof Error ? err.message : 'Error al eliminar el archivo')
     }
   }
 
@@ -204,21 +185,6 @@ export default function AppSettingsPage() {
           Gestiona la APK de ScanStock para Android
         </p>
       </div>
-
-      {/* Alerts */}
-      {error && (
-        <div className="flex items-center gap-2 p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive">
-          <AlertCircle className="w-5 h-5 shrink-0" />
-          <p className="text-sm">{error}</p>
-        </div>
-      )}
-
-      {success && (
-        <div className="flex items-center gap-2 p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-500">
-          <Check className="w-5 h-5 shrink-0" />
-          <p className="text-sm">{success}</p>
-        </div>
-      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Current APK Info */}

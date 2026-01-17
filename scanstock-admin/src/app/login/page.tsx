@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, Shield, Boxes, ChevronRight } from 'lucide-react'
+import { Loader2, Shield, Boxes, ChevronRight, AlertTriangle } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -17,37 +17,39 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isBlocked, setIsBlocked] = useState(false)
+  const [remainingAttempts, setRemainingAttempts] = useState<number | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    try {
+      // Use server-side API with rate limiting
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
 
-    if (signInError) {
-      setError('Credenciales inválidas')
+      const result = await response.json()
+
+      if (!response.ok) {
+        setError(result.error)
+        setIsBlocked(result.blocked || false)
+        setRemainingAttempts(result.remainingAttempts ?? null)
+        setLoading(false)
+        return
+      }
+
+      // Login successful - refresh session on client
+      await supabase.auth.refreshSession()
+      router.push('/dashboard')
+    } catch {
+      setError('Error de conexión. Intenta de nuevo.')
       setLoading(false)
-      return
     }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_super_admin')
-      .eq('id', data.user.id)
-      .single()
-
-    if (!profile?.is_super_admin) {
-      await supabase.auth.signOut()
-      setError('Acceso restringido a administradores')
-      setLoading(false)
-      return
-    }
-
-    router.push('/dashboard')
   }
 
   return (
@@ -164,7 +166,17 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <Alert variant="destructive" className="border-destructive/50 bg-destructive/10">
-                <AlertDescription>{error}</AlertDescription>
+                <div className="flex items-start gap-2">
+                  {isBlocked && <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />}
+                  <div>
+                    <AlertDescription>{error}</AlertDescription>
+                    {remainingAttempts !== null && remainingAttempts > 0 && (
+                      <p className="text-xs mt-1 opacity-80">
+                        Intentos restantes: {remainingAttempts}
+                      </p>
+                    )}
+                  </div>
+                </div>
               </Alert>
             )}
 

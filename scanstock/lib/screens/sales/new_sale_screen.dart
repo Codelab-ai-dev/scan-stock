@@ -6,6 +6,7 @@ import '../../services/product_service.dart';
 import '../../services/sale_service.dart';
 import '../../widgets/continuous_scanner_widget.dart';
 import '../../widgets/sale_item_card.dart';
+import '../../utils/feedback.dart' as app_feedback;
 
 enum SaleScreenState { scanning, reviewing, payment, processing, success, error }
 
@@ -310,12 +311,7 @@ class _NewSaleScreenState extends State<NewSaleScreen>
   }
 
   void _showErrorSnackbar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: AppTheme.error,
-      ),
-    );
+    app_feedback.Feedback.error(context, message);
   }
 
   void _incrementItem(int index) {
@@ -385,14 +381,7 @@ class _NewSaleScreenState extends State<NewSaleScreen>
   void _processPayment() async {
     if (_montoRecibido < _total) {
       HapticFeedback.heavyImpact();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('El monto recibido es menor al total'),
-          backgroundColor: AppTheme.error,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
+      app_feedback.Feedback.error(context, 'El monto recibido es menor al total');
       return;
     }
 

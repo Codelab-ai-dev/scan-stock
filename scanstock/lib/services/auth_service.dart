@@ -72,6 +72,18 @@ class AuthService {
     }).eq('id', user.id);
   }
 
+  /// Actualiza la contraseña del usuario actual
+  Future<void> updatePassword({
+    required String newPassword,
+  }) async {
+    final user = currentUser;
+    if (user == null) throw Exception('No hay usuario logueado');
+
+    await _client.auth.updateUser(
+      UserAttributes(password: newPassword),
+    );
+  }
+
   /// Crea un usuario para el mismo negocio del admin actual.
   /// Usa una Edge Function para no afectar la sesión del admin.
   Future<void> createUser({

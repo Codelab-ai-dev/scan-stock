@@ -45,16 +45,16 @@ export default function BusinessesPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Negocios</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold">Negocios</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Gestiona los negocios de la plataforma
           </p>
         </div>
-        <Link href="/businesses/new">
-          <Button>
+        <Link href="/businesses/new" className="self-start sm:self-auto">
+          <Button size="sm" className="sm:size-default">
             <Plus className="h-4 w-4 mr-2" />
             Nuevo negocio
           </Button>
@@ -62,7 +62,7 @@ export default function BusinessesPage() {
       </div>
 
       {/* Search */}
-      <div className="relative max-w-md">
+      <div className="relative w-full sm:max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Buscar negocios..."
@@ -75,14 +75,14 @@ export default function BusinessesPage() {
       {/* Businesses Grid */}
       {filteredBusinesses.length === 0 ? (
         <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground mb-4">
+          <CardContent className="flex flex-col items-center justify-center py-12 sm:py-16 px-4">
+            <Building2 className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mb-4" />
+            <p className="text-sm sm:text-base text-muted-foreground mb-4 text-center">
               {search ? 'No se encontraron negocios' : 'No hay negocios registrados'}
             </p>
             {!search && (
               <Link href="/businesses/new">
-                <Button>
+                <Button size="sm" className="sm:size-default">
                   <Plus className="h-4 w-4 mr-2" />
                   Crear primer negocio
                 </Button>
@@ -91,36 +91,36 @@ export default function BusinessesPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredBusinesses.map((business) => (
             <Link key={business.id} href={`/businesses/${business.id}`}>
               <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full">
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex items-start gap-3 sm:gap-4">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
                       {business.logo_url ? (
                         <img
                           src={business.logo_url}
                           alt={business.name}
-                          className="w-8 h-8 rounded object-cover"
+                          className="w-6 h-6 sm:w-8 sm:h-8 rounded object-cover"
                         />
                       ) : (
-                        <Building2 className="h-6 w-6 text-primary" />
+                        <Building2 className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold truncate">{business.name}</h3>
+                      <div className="flex flex-wrap items-center gap-1 sm:gap-2 mb-1">
+                        <h3 className="font-semibold text-sm sm:text-base truncate">{business.name}</h3>
                         <Badge
                           variant={business.is_active ? 'success' : 'destructive'}
-                          className="shrink-0"
+                          className="shrink-0 text-[10px] sm:text-xs"
                         >
                           {business.is_active ? 'Activo' : 'Inactivo'}
                         </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground">/{business.slug}</p>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Creado: {new Date(business.created_at).toLocaleDateString('es-ES')}
+                      <p className="text-xs sm:text-sm text-muted-foreground truncate">/{business.slug}</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 sm:mt-2">
+                        {new Date(business.created_at).toLocaleDateString('es-ES')}
                       </p>
                     </div>
                   </div>

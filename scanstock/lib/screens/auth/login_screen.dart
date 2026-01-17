@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../config/app_theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../utils/validators.dart';
+import '../../utils/feedback.dart' as app_feedback;
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -69,22 +71,9 @@ class _LoginScreenState extends State<LoginScreen>
     );
 
     if (!success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.error_outline, color: Colors.white, size: 20),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(authProvider.error ?? 'Error al iniciar sesion'),
-              ),
-            ],
-          ),
-          backgroundColor: AppTheme.error,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          margin: const EdgeInsets.all(16),
-        ),
+      app_feedback.Feedback.error(
+        context,
+        authProvider.error ?? 'Error al iniciar sesión',
       );
     }
   }
@@ -193,15 +182,7 @@ class _LoginScreenState extends State<LoginScreen>
         hintText: 'tu@correo.com',
         prefixIcon: Icon(Icons.email_outlined),
       ),
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Ingresa tu correo electronico';
-        }
-        if (!value.contains('@')) {
-          return 'Ingresa un correo valido';
-        }
-        return null;
-      },
+      validator: Validators.email,
     );
   }
 
@@ -231,15 +212,7 @@ class _LoginScreenState extends State<LoginScreen>
           },
         ),
       ),
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Ingresa tu contrasena';
-        }
-        if (value.length < 6) {
-          return 'La contrasena debe tener al menos 6 caracteres';
-        }
-        return null;
-      },
+      validator: (value) => Validators.minLength(value, 6, 'La contraseña'),
     );
   }
 

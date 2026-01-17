@@ -7,6 +7,8 @@ import '../../services/product_service.dart';
 import '../../services/storage_service.dart';
 import '../../widgets/camera_capture_widget.dart';
 import '../../widgets/barcode_scanner_widget.dart';
+import '../../utils/validators.dart';
+import '../../utils/feedback.dart' as app_feedback;
 
 class ProductFormScreen extends StatefulWidget {
   final Producto? product;
@@ -105,22 +107,9 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
 
       if (barcodeExists) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 20),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text('Ya existe un producto con este codigo de barras'),
-                  ),
-                ],
-              ),
-              backgroundColor: AppTheme.warning,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              margin: const EdgeInsets.all(16),
-            ),
+          app_feedback.Feedback.warning(
+            context,
+            'Ya existe un producto con este código de barras',
           );
           setState(() {
             _isLoading = false;
@@ -156,51 +145,17 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.check, color: Colors.white, size: 16),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  isEditing
-                      ? 'Producto actualizado correctamente'
-                      : 'Producto creado correctamente',
-                ),
-              ],
-            ),
-            backgroundColor: AppTheme.success,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            margin: const EdgeInsets.all(16),
-          ),
+        app_feedback.Feedback.success(
+          context,
+          isEditing
+              ? 'Producto actualizado correctamente'
+              : 'Producto creado correctamente',
         );
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.error_outline, color: Colors.white, size: 20),
-                const SizedBox(width: 12),
-                Expanded(child: Text('Error: $e')),
-              ],
-            ),
-            backgroundColor: AppTheme.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            margin: const EdgeInsets.all(16),
-          ),
-        );
+        app_feedback.Feedback.error(context, 'Error: $e');
       }
     } finally {
       if (mounted) {
@@ -371,12 +326,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
               hintText: 'Ej: 7501234567890',
               prefixIcon: Icon(Icons.qr_code),
             ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Ingresa el codigo de barras';
-              }
-              return null;
-            },
+            validator: (value) => Validators.required(value, 'El código de barras'),
           ),
         ),
         const SizedBox(width: 10),
@@ -426,12 +376,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
         hintText: 'Ej: Coca Cola 600ml',
         prefixIcon: Icon(Icons.inventory_2_outlined),
       ),
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Ingresa el nombre del producto';
-        }
-        return null;
-      },
+      validator: (value) => Validators.required(value, 'El nombre'),
     );
   }
 
@@ -474,16 +419,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
         hintStyle: TextStyle(color: AppTheme.success.withValues(alpha: 0.5)),
         prefixIcon: const Icon(Icons.attach_money, color: AppTheme.success),
       ),
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Ingresa el precio';
-        }
-        final price = double.tryParse(value);
-        if (price == null || price < 0) {
-          return 'Ingresa un precio valido';
-        }
-        return null;
-      },
+      validator: Validators.price,
     );
   }
 
@@ -539,12 +475,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                     hintText: '0',
                     prefixIcon: Icon(Icons.inventory_2_outlined, color: AppTheme.info),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Requerido';
-                    }
-                    return null;
-                  },
+                  validator: Validators.stock,
                 ),
               ),
               const SizedBox(width: 12),
@@ -565,12 +496,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                     hintText: '5',
                     prefixIcon: Icon(Icons.warning_amber_rounded, color: AppTheme.warning),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Requerido';
-                    }
-                    return null;
-                  },
+                  validator: Validators.stock,
                 ),
               ),
             ],

@@ -6,6 +6,7 @@ import '../../models/producto.dart';
 import '../../services/product_service.dart';
 import '../../services/storage_service.dart';
 import '../../widgets/product_card.dart';
+import '../../utils/feedback.dart' as app_feedback;
 import 'product_form_screen.dart';
 
 class ProductListScreen extends StatefulWidget {
@@ -131,101 +132,12 @@ class _ProductListScreenState extends State<ProductListScreen>
   }
 
   Future<void> _deleteProduct(Producto product) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: AppTheme.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: AppTheme.border),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppTheme.error.withValues(alpha: 0.15),
-                  border: Border.all(
-                    color: AppTheme.error.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: const Icon(
-                  Icons.delete_outline_rounded,
-                  color: AppTheme.error,
-                  size: 28,
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Eliminar producto',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Estas seguro que deseas eliminar "${product.nombre}"?',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppTheme.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        side: const BorderSide(color: AppTheme.border),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        'Cancelar',
-                        style: TextStyle(color: AppTheme.textSecondary),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.error,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        'Eliminar',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
+    final confirm = await app_feedback.Feedback.confirmDelete(
+      context,
+      itemName: product.nombre,
     );
 
-    if (confirm != true) return;
+    if (!confirm) return;
 
     try {
       if (product.imagenUrl != null && product.imagenUrl!.isNotEmpty) {
@@ -235,47 +147,12 @@ class _ProductListScreenState extends State<ProductListScreen>
       await _productService.deleteProduct(product.id!);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.check, color: Colors.white, size: 16),
-                ),
-                const SizedBox(width: 12),
-                const Text('Producto eliminado'),
-              ],
-            ),
-            backgroundColor: AppTheme.success,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            margin: const EdgeInsets.all(16),
-          ),
-        );
+        app_feedback.Feedback.success(context, 'Producto eliminado');
         _loadProducts();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.error_outline, color: Colors.white, size: 20),
-                const SizedBox(width: 12),
-                Text('Error al eliminar: $e'),
-              ],
-            ),
-            backgroundColor: AppTheme.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            margin: const EdgeInsets.all(16),
-          ),
-        );
+        app_feedback.Feedback.error(context, 'Error al eliminar: $e');
       }
     }
   }

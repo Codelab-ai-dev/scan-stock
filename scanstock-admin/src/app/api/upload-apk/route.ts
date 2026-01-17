@@ -6,6 +6,9 @@ const BUNNY_API_KEY = process.env.BUNNY_STORAGE_PASSWORD
 const BUNNY_STORAGE_REGION = process.env.BUNNY_STORAGE_REGION || ''
 const BUNNY_PULL_ZONE = process.env.BUNNY_PULL_ZONE
 
+// Max file size: 200MB
+const MAX_FILE_SIZE = 200 * 1024 * 1024
+
 // Build storage URL based on region
 const getStorageUrl = () => {
   const regionPrefix = BUNNY_STORAGE_REGION ? `${BUNNY_STORAGE_REGION}.` : ''
@@ -17,24 +20,66 @@ const getCdnUrl = () => {
   return `https://${BUNNY_PULL_ZONE}.b-cdn.net`
 }
 
-// GET: Return upload credentials for direct client upload
+// Helper to verify super admin
+async function verifySuperAdmin(supabase: Awaited<ReturnType<typeof createClient>>) {
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: 'No autorizado', status: 401 }
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_super_admin')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile?.is_super_admin) {
+    return { error: 'Acceso denegado', status: 403 }
+  }
+
+  return { user, profile }
+}
+
+// Validate version format (semver-like)
+function isValidVersion(version: string): boolean {
+  const versionRegex = /^\d+\.\d+(\.\d+)?$/
+  return versionRegex.test(version)
+}
+
+// GET: Check configuration status (no sensitive data exposed)
 export async function GET() {
   try {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const auth = await verifySuperAdmin(supabase)
 
-    if (!user) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_super_admin')
-      .eq('id', user.id)
-      .single()
+    const isConfigured = !!(BUNNY_STORAGE_ZONE && BUNNY_API_KEY && BUNNY_PULL_ZONE)
 
-    if (!profile?.is_super_admin) {
-      return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
+    return NextResponse.json({
+      configured: isConfigured,
+      maxFileSize: MAX_FILE_SIZE,
+    })
+  } catch (error) {
+    console.error('Error checking config:', error)
+    return NextResponse.json(
+      { error: 'Error interno del servidor' },
+      { status: 500 }
+    )
+  }
+}
+
+// POST: Upload APK file to Bunny Storage (server-side)
+export async function POST(request: NextRequest) {
+  try {
+    const supabase = await createClient()
+    const auth = await verifySuperAdmin(supabase)
+
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
 
     if (!BUNNY_STORAGE_ZONE || !BUNNY_API_KEY || !BUNNY_PULL_ZONE) {
@@ -44,49 +89,90 @@ export async function GET() {
       )
     }
 
-    return NextResponse.json({
-      storageUrl: getStorageUrl(),
-      cdnUrl: getCdnUrl(),
-      apiKey: BUNNY_API_KEY,
-    })
-  } catch (error) {
-    console.error('Error getting upload config:', error)
-    return NextResponse.json(
-      { error: 'Error interno del servidor' },
-      { status: 500 }
-    )
-  }
-}
+    // Parse form data
+    const formData = await request.formData()
+    const file = formData.get('file') as File | null
+    const version = formData.get('version') as string | null
 
-// POST: Save APK info to database after client upload
-export async function POST(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_super_admin')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile?.is_super_admin) {
-      return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
-    }
-
-    const body = await request.json()
-    const { version, filename, size, url } = body
-
-    if (!version || !filename || !url) {
+    // Validate inputs
+    if (!file) {
       return NextResponse.json(
-        { error: 'Faltan datos requeridos' },
+        { error: 'No se proporcionó archivo' },
         { status: 400 }
       )
     }
+
+    if (!version || !version.trim()) {
+      return NextResponse.json(
+        { error: 'La versión es requerida' },
+        { status: 400 }
+      )
+    }
+
+    if (!isValidVersion(version.trim())) {
+      return NextResponse.json(
+        { error: 'Formato de versión inválido. Use formato: X.Y o X.Y.Z' },
+        { status: 400 }
+      )
+    }
+
+    // Validate file type
+    if (!file.name.toLowerCase().endsWith('.apk')) {
+      return NextResponse.json(
+        { error: 'Solo se permiten archivos APK' },
+        { status: 400 }
+      )
+    }
+
+    // Validate file size
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: `El archivo excede el tamaño máximo de ${MAX_FILE_SIZE / (1024 * 1024)}MB` },
+        { status: 400 }
+      )
+    }
+
+    // Validate content type
+    const validContentTypes = [
+      'application/vnd.android.package-archive',
+      'application/octet-stream',
+    ]
+    if (!validContentTypes.includes(file.type) && file.type !== '') {
+      return NextResponse.json(
+        { error: 'Tipo de archivo no válido' },
+        { status: 400 }
+      )
+    }
+
+    const filename = `scanstock-v${version.trim()}.apk`
+    const storageUrl = `${getStorageUrl()}/${filename}`
+
+    // Get file buffer
+    const arrayBuffer = await file.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+
+    // Upload to Bunny Storage (server-side - API key never exposed to client)
+    const uploadResponse = await fetch(storageUrl, {
+      method: 'PUT',
+      headers: {
+        'AccessKey': BUNNY_API_KEY,
+        'Content-Type': 'application/vnd.android.package-archive',
+      },
+      body: buffer,
+    })
+
+    if (!uploadResponse.ok) {
+      const errorText = await uploadResponse.text()
+      console.error('Bunny upload error:', errorText)
+      return NextResponse.json(
+        { error: 'Error al subir archivo a Bunny Storage' },
+        { status: 500 }
+      )
+    }
+
+    // Calculate file size string
+    const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1) + ' MB'
+    const apkUrl = `${getCdnUrl()}/${filename}`
 
     // Update or insert app_settings
     const { data: existing } = await supabase
@@ -94,17 +180,19 @@ export async function POST(request: NextRequest) {
       .select('id')
       .single()
 
+    const settingsData = {
+      apk_url: apkUrl,
+      apk_version: version.trim(),
+      apk_size: fileSizeMB,
+      apk_filename: filename,
+      updated_at: new Date().toISOString(),
+      updated_by: auth.user.id,
+    }
+
     if (existing) {
       const { error: updateError } = await supabase
         .from('app_settings')
-        .update({
-          apk_url: url,
-          apk_version: version,
-          apk_size: size,
-          apk_filename: filename,
-          updated_at: new Date().toISOString(),
-          updated_by: user.id,
-        })
+        .update(settingsData)
         .eq('id', existing.id)
 
       if (updateError) {
@@ -117,13 +205,7 @@ export async function POST(request: NextRequest) {
     } else {
       const { error: insertError } = await supabase
         .from('app_settings')
-        .insert({
-          apk_url: url,
-          apk_version: version,
-          apk_size: size,
-          apk_filename: filename,
-          updated_by: user.id,
-        })
+        .insert(settingsData)
 
       if (insertError) {
         console.error('Error inserting app_settings:', insertError)
@@ -134,9 +216,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({
+      success: true,
+      url: apkUrl,
+      version: version.trim(),
+      size: fileSizeMB,
+    })
   } catch (error) {
-    console.error('Save error:', error)
+    console.error('Upload error:', error)
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }
@@ -147,20 +234,10 @@ export async function POST(request: NextRequest) {
 export async function DELETE() {
   try {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const auth = await verifySuperAdmin(supabase)
 
-    if (!user) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_super_admin')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile?.is_super_admin) {
-      return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
 
     if (!BUNNY_STORAGE_ZONE || !BUNNY_API_KEY) {
@@ -205,7 +282,7 @@ export async function DELETE() {
         apk_size: null,
         apk_filename: null,
         updated_at: new Date().toISOString(),
-        updated_by: user.id,
+        updated_by: auth.user.id,
       })
       .eq('id', settings.id)
 

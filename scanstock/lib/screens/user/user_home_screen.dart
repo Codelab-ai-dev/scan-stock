@@ -5,6 +5,7 @@ import '../../providers/auth_provider.dart';
 import 'scanner_screen.dart';
 import '../sales/new_sale_screen.dart';
 import '../sales/sales_history_screen.dart';
+import '../profile/profile_screen.dart';
 
 class UserHomeScreen extends StatefulWidget {
   const UserHomeScreen({super.key});
@@ -119,6 +120,29 @@ class _UserHomeScreenState extends State<UserHomeScreen>
             ),
           ),
           const Spacer(),
+          Container(
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceLight,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppTheme.border),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.person_outline_rounded, size: 18),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ProfileScreen(),
+                  ),
+                );
+              },
+              tooltip: 'Mi perfil',
+              color: AppTheme.textSecondary,
+              padding: const EdgeInsets.all(8),
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            ),
+          ),
+          const SizedBox(width: 8),
           Container(
             decoration: BoxDecoration(
               color: AppTheme.surfaceLight,

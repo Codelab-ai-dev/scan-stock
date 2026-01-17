@@ -124,37 +124,37 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-2 sm:gap-3 mb-2">
             <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest">
+            <span className="text-[10px] sm:text-xs font-mono text-muted-foreground uppercase tracking-widest">
               Panel de Control
             </span>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">
-            Resumen general de la plataforma ScanStock
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">
+            Resumen general de la plataforma
           </p>
         </div>
 
-        <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-card border border-border">
+        <div className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg bg-card border border-border self-start">
           <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-          <span className="text-xs font-mono text-muted-foreground">
-            Última actualización: {new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+          <span className="text-[10px] sm:text-xs font-mono text-muted-foreground">
+            {new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
           </span>
         </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {statCards.map((stat, index) => (
           <div
             key={stat.title}
             className={cn(
-              'group relative overflow-hidden rounded-xl border bg-card p-6 transition-all duration-300 hover:border-primary/30 hover:-translate-y-1',
+              'group relative overflow-hidden rounded-xl border bg-card p-4 sm:p-6 transition-all duration-300 hover:border-primary/30 hover:-translate-y-1',
               stat.borderColor,
               'opacity-0 animate-fade-up'
             )}
@@ -164,25 +164,25 @@ export default function DashboardPage() {
             <div className={cn('absolute inset-0 bg-gradient-to-br opacity-50', stat.gradient)} />
 
             {/* Corner accent */}
-            <div className="absolute top-0 right-0 w-16 h-16 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="absolute top-0 right-0 w-16 h-16 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block">
               <div className={cn('absolute top-2 right-2 w-8 h-[1px]', stat.iconBg.replace('/20', ''))} />
               <div className={cn('absolute top-2 right-2 w-[1px] h-8', stat.iconBg.replace('/20', ''))} />
             </div>
 
             <div className="relative">
-              <div className="flex items-start justify-between mb-4">
-                <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center', stat.iconBg)}>
-                  <stat.icon className={cn('h-6 w-6', stat.iconColor)} />
+              <div className="flex items-start justify-between mb-3 sm:mb-4">
+                <div className={cn('w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center', stat.iconBg)}>
+                  <stat.icon className={cn('h-5 w-5 sm:h-6 sm:w-6', stat.iconColor)} />
                 </div>
-                <div className="flex items-center gap-1 text-xs">
+                <div className="flex items-center gap-1 text-[10px] sm:text-xs">
                   <TrendingUp className="w-3 h-3 text-emerald-500" />
                   <span className="text-emerald-500 font-mono">{stat.trend}</span>
                 </div>
               </div>
 
               <div>
-                <p className="text-sm text-muted-foreground mb-1">{stat.title}</p>
-                <p className="text-3xl font-bold font-mono tracking-tight">{stat.value.toLocaleString()}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-1">{stat.title}</p>
+                <p className="text-2xl sm:text-3xl font-bold font-mono tracking-tight">{stat.value.toLocaleString()}</p>
               </div>
             </div>
           </div>
@@ -192,19 +192,19 @@ export default function DashboardPage() {
       {/* Recent Businesses */}
       <div className="rounded-xl border border-border bg-card overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-border">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-6 border-b border-border gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-primary" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
+              <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
             </div>
             <div>
-              <h2 className="font-semibold">Últimos Negocios</h2>
-              <p className="text-xs text-muted-foreground">Negocios registrados recientemente</p>
+              <h2 className="font-semibold text-sm sm:text-base">Últimos Negocios</h2>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Registrados recientemente</p>
             </div>
           </div>
           <Link
             href="/businesses"
-            className="flex items-center gap-2 text-sm text-primary hover:underline group"
+            className="flex items-center gap-2 text-sm text-primary hover:underline group self-end sm:self-auto"
           >
             Ver todos
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -212,7 +212,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {recentBusinesses.length === 0 ? (
             <div className="text-center py-12">
               <div className="w-16 h-16 rounded-xl bg-muted flex items-center justify-center mx-auto mb-4">
@@ -228,37 +228,37 @@ export default function DashboardPage() {
               </Link>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               {recentBusinesses.map((business, index) => (
                 <Link
                   key={business.id}
                   href={`/businesses/${business.id}`}
                   className={cn(
-                    'group flex items-center gap-4 p-4 rounded-xl border border-transparent bg-background/50 hover:border-primary/20 hover:bg-primary/5 transition-all duration-200',
+                    'group flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl border border-transparent bg-background/50 hover:border-primary/20 hover:bg-primary/5 transition-all duration-200',
                     'opacity-0 animate-fade-up'
                   )}
                   style={{ animationDelay: `${(index + 4) * 100}ms`, animationFillMode: 'forwards' }}
                 >
-                  <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-muted flex items-center justify-center group-hover:bg-primary/20 transition-colors shrink-0">
                     {business.logo_url ? (
                       <img
                         src={business.logo_url}
                         alt={business.name}
-                        className="w-8 h-8 rounded-lg object-cover"
+                        className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg object-cover"
                       />
                     ) : (
-                      <Building2 className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                      <Building2 className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground group-hover:text-primary transition-colors" />
                     )}
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium truncate group-hover:text-primary transition-colors">
+                    <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                      <p className="font-medium text-sm sm:text-base truncate group-hover:text-primary transition-colors">
                         {business.name}
                       </p>
                       <span
                         className={cn(
-                          'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium',
+                          'inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium',
                           business.is_active
                             ? 'bg-emerald-500/20 text-emerald-500'
                             : 'bg-red-500/20 text-red-500'
@@ -271,10 +271,10 @@ export default function DashboardPage() {
                         {business.is_active ? 'Activo' : 'Inactivo'}
                       </span>
                     </div>
-                    <p className="text-sm text-muted-foreground font-mono">/{business.slug}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground font-mono truncate">/{business.slug}</p>
                   </div>
 
-                  <div className="text-right">
+                  <div className="text-right hidden sm:block">
                     <p className="text-xs text-muted-foreground">
                       {new Date(business.created_at).toLocaleDateString('es-ES', {
                         day: '2-digit',
@@ -283,7 +283,7 @@ export default function DashboardPage() {
                     </p>
                   </div>
 
-                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 sm:opacity-0 sm:-translate-x-2 sm:group-hover:opacity-100 sm:group-hover:translate-x-0 transition-all" />
                 </Link>
               ))}
             </div>

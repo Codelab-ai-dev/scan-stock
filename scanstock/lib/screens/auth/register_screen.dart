@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../config/app_theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../utils/validators.dart';
+import '../../utils/feedback.dart' as app_feedback;
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -65,48 +67,15 @@ class _RegisterScreenState extends State<RegisterScreen>
 
     if (mounted) {
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.check, color: Colors.white, size: 16),
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Text('Cuenta creada. Por favor verifica tu correo.'),
-                ),
-              ],
-            ),
-            backgroundColor: AppTheme.success,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            margin: const EdgeInsets.all(16),
-          ),
+        app_feedback.Feedback.success(
+          context,
+          'Cuenta creada. Por favor verifica tu correo.',
         );
         Navigator.pop(context);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.error_outline, color: Colors.white, size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(authProvider.error ?? 'Error al registrarse'),
-                ),
-              ],
-            ),
-            backgroundColor: AppTheme.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            margin: const EdgeInsets.all(16),
-          ),
+        app_feedback.Feedback.error(
+          context,
+          authProvider.error ?? 'Error al registrarse',
         );
       }
     }
@@ -256,12 +225,7 @@ class _RegisterScreenState extends State<RegisterScreen>
         hintText: 'Tu nombre',
         prefixIcon: Icon(Icons.person_outline),
       ),
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Ingresa tu nombre';
-        }
-        return null;
-      },
+      validator: (value) => Validators.required(value, 'El nombre'),
     );
   }
 
@@ -278,15 +242,7 @@ class _RegisterScreenState extends State<RegisterScreen>
         hintText: 'tu@correo.com',
         prefixIcon: Icon(Icons.email_outlined),
       ),
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Ingresa tu correo electronico';
-        }
-        if (!value.contains('@')) {
-          return 'Ingresa un correo valido';
-        }
-        return null;
-      },
+      validator: Validators.email,
     );
   }
 
@@ -314,15 +270,7 @@ class _RegisterScreenState extends State<RegisterScreen>
           },
         ),
       ),
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Ingresa una contrasena';
-        }
-        if (value.length < 6) {
-          return 'La contrasena debe tener al menos 6 caracteres';
-        }
-        return null;
-      },
+      validator: (value) => Validators.minLength(value, 6, 'La contraseña'),
     );
   }
 
@@ -351,15 +299,7 @@ class _RegisterScreenState extends State<RegisterScreen>
           },
         ),
       ),
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Confirma tu contrasena';
-        }
-        if (value != _passwordController.text) {
-          return 'Las contrasenas no coinciden';
-        }
-        return null;
-      },
+      validator: (value) => Validators.confirmPassword(value, _passwordController.text),
     );
   }
 
